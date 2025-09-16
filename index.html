@@ -299,6 +299,19 @@
 
     // Dataset per land (compact maar uitbreidbaar)
     const data = {
+      nederland: {
+        id: 'nederland',
+        name: 'Nederland',
+        flag: '🇳l',
+        period: 'vandaag',
+        challenges: [
+          { id: 'nl1', category: 'amsterdam', title: 'De dierenriem', description: 'drink minimaal een biertje bij 5 verschillende kroegen uit de dierenriem', points: 50, reward: '🌄Ontbijtje op bed morgenochtend', location: 'Amsterdam' },
+          { id: 'nl2', category: 'amsterdam', title: 'Groepsfoto', description: 'Maak de leukste groepsfoto ever voor aan de muur in onze Camper', points: 50, reward: '🍺 Shots!!!!!', location: 'Amsterdam' },
+          { id: 'nl3', category: 'amsterdam', title: 'Pikketanussie', description: 'Drink een Pikketanussie met een vriend(in) naar keuze', points: 70, reward: 'Herstel colaatje van Danny', location: 'Amsterdam' },
+          { id: 'nl4', category: 'amsterdam', title: 'Social talk', description: 'Start een gesprek met een vreemde en vertel over je reis ', points: 100, reward: '📸 Polaroid met al je matties', location: 'Amsterdam'},
+          { id: 'nl5', category: 'amsterdam', title: 'Ik meen het', description: 'Pak de microfoon in de twee zwaantjes en zing ik meen het van Andre Hazes', points: 80, reward: '🎤 Danny zingt met je mee', location: 'Amsterdam' }
+      ]
+    },
       newZealand: {
         id: 'newZealand',
         name: 'Nieuw-Zeeland',
@@ -426,6 +439,7 @@
       { id: 'a4', icon: '🪁', name: 'Kite Queen', test: (state) => uniqueCountriesForCategory(state, 'kite') >= 3 },
       { id: 'a5', icon: '🗣️', name: 'Social Butterfly', test: (state) => countByCategory(state, 'sociaal') >= 5 },
       { id: 'a6', icon: '🎲', name: 'Wildcard Waanzin', test: (state) => countByCategory(state, 'wildcard') >= 3 },
+      { id: 'a7', icon: '🍺', name: 'Geef mij maar Amsterdam', test: (state) => uniqueCountriesForCategory(state, 'amsterdam') >= 4 }
     ];
 
     // Beloning thresholds (bij X gehaalde challenges)
@@ -867,4 +881,5 @@
   </script>
 </body>
 </html>
+
 
