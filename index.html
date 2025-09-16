@@ -439,7 +439,7 @@
       { id: 'a4', icon: '🪁', name: 'Kite Queen', test: (state) => uniqueCountriesForCategory(state, 'kite') >= 3 },
       { id: 'a5', icon: '🗣️', name: 'Social Butterfly', test: (state) => countByCategory(state, 'sociaal') >= 5 },
       { id: 'a6', icon: '🎲', name: 'Wildcard Waanzin', test: (state) => countByCategory(state, 'wildcard') >= 3 },
-      { id: 'a7', icon: '🍺', name: 'Geef mij maar Amsterdam', test: (state) => uniqueCountriesForCategory(state, 'amsterdam') >= 4 }
+      { id: 'a7', icon: '🍺', name: 'Geef mij maar Amsterdam', test: (state) => countByCategory(state, 'amsterdam') >= 4 }
     ];
 
     // Beloning thresholds (bij X gehaalde challenges)
