@@ -113,6 +113,11 @@
       background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 15px;
       margin-bottom: 12px; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;
     }
+    .challenge-card.locked {
+      opacity: 0.6;
+      filter: grayscale(0.2);
+      cursor: default;
+    }
     .challenge-card::before {
       content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
       background: linear-gradient(90deg, transparent, rgba(102,126,234,0.1), transparent);
@@ -226,6 +231,7 @@
     .countdown-item { text-align: center; }
     .countdown-value { font-size: 28px; font-weight: bold; color: #667eea; }
     .countdown-label { font-size: 11px; color: #666; text-transform: uppercase; }
+    .country-locked-note { font-size: 12px; color: #a33; margin-top: 8px; }
     @media (max-width: 500px) { .app-container { max-width: 100%; } }
   </style>
 </head>
@@ -297,6 +303,16 @@
     // ⚙️ Pas hier eenvoudig je startdatum aan (YYYY-MM-DD)
     const tripStartDate = localStorage.getItem('wr_tripStart') || '2025-12-30';
 
+    // helper: next upcoming saturday (gebruik +7 als vandaag zaterdag)
+    function nextUpcomingSaturdayISO() {
+      const today = new Date();
+      let daysUntil = (6 - today.getDay() + 7) % 7;
+      if (daysUntil === 0) daysUntil = 7; // volgende zaterdag
+      const d = new Date(today);
+      d.setDate(today.getDate() + daysUntil);
+      return d.toISOString().slice(0,10);
+    }
+
     // Dataset per land (compact maar uitbreidbaar)
     const data = {
       nederland: {
@@ -304,19 +320,22 @@
         name: 'Nederland',
         flag: '🇳🇱',
         period: 'vandaag',
+        // visibleFrom bepaalt wanneer het land "open" is (YYYY-MM-DD)
+        visibleFrom: nextUpcomingSaturdayISO(),
         challenges: [
           { id: 'nl1', category: 'amsterdam', title: 'De dierenriem', description: 'drink minimaal een biertje bij 5 verschillende kroegen uit de dierenriem', points: 50, reward: '🌄Ontbijtje op bed morgenochtend', location: 'Amsterdam' },
           { id: 'nl2', category: 'amsterdam', title: 'Groepsfoto', description: 'Maak de leukste groepsfoto ever voor aan de muur in onze Camper', points: 50, reward: '🍺 Shots!!!!!', location: 'Amsterdam' },
           { id: 'nl3', category: 'amsterdam', title: 'Pikketanussie', description: 'Drink een Pikketanussie met een vriend(in) naar keuze', points: 70, reward: 'Herstel colaatje van Danny', location: 'Amsterdam' },
           { id: 'nl4', category: 'amsterdam', title: 'Social talk', description: 'Start een gesprek met een vreemde en vertel over je reis ', points: 100, reward: '📸 Polaroid met al je matties', location: 'Amsterdam'},
           { id: 'nl5', category: 'amsterdam', title: 'Ik meen het', description: 'Pak de microfoon in de twee zwaantjes en zing ik meen het van Andre Hazes', points: 80, reward: '🎤 Danny zingt met je mee', location: 'Amsterdam' }
-      ]
-    },
+        ]
+      },
       newZealand: {
         id: 'newZealand',
         name: 'Nieuw-Zeeland',
         flag: '🇳🇿',
         period: 'Januari – Februari',
+        visibleFrom: '2026-01-01',
         challenges: [
           { id: 'nz1', category: 'culinair', title: 'Martinborough Wijn Meester', description: 'Proef 5 Pinot Noirs en kies je favoriet.', points: 50, reward: '🍷 Fles lokale wijn', location: 'Martinborough' },
           { id: 'nz2', category: 'hiking', title: 'Abel Tasman Zonsopgang', description: 'Start vóór zonsopgang en maak een foto op Anchorage Bay.', points: 75, reward: '💋 Kusje van Danny', location: 'Abel Tasman' },
@@ -348,6 +367,7 @@
         name: 'Vietnam',
         flag: '🇻🇳',
         period: 'Februari – Maart',
+        visibleFrom: '2026-02-01',
         challenges: [
           { id: 'vn1', category: 'culinair', title: 'Nachtmarkt A-Z', description: 'Probeer 5 gerechtjes die beginnen met een andere letter', points: 80, reward: '🍜 Toetjes is van mij', location: 'Hoi An / Hanoi' },
           { id: 'vn3', category: 'hiking', title: 'Sapa Ridge Walk', description: 'Zonsopgang hike met rijstterrassen uitzicht.', points: 70, reward: '🥾 Danny zorgt voor ontbijt', location: 'Sapa' },
@@ -375,6 +395,7 @@
       },
       china: {
         id: 'china', name: 'China', flag: '🇨🇳', period: 'Maart – April',
+        visibleFrom: '2026-03-01',
         challenges: [
           { id: 'cn1', category: 'culinair', title: 'Sichuan Vuurdoop', description: 'Overleef hotpot level 5 🔥', points: 100, reward: '🥵 Milk tea traktatie', location: 'Chengdu' },
           { id: 'cn2', category: 'sociaal', title: 'Mahjong Master', description: 'Win een potje van Chinese oma’s.', points: 200, reward: '🀄 Mini setje', location: 'Chengdu / Shanghai' },
@@ -413,6 +434,7 @@
       },
       taiwan: {
         id: 'taiwan', name: 'Taiwan', flag: '🇹🇼', period: 'April',
+        visibleFrom: '2026-04-01',
         challenges: [
           { id: 'tw1', category: 'culinair', title: 'Nachtmarkt Ninja', description: 'Scoor 4 iconische snacks op 1 avond.', points: 70, reward: '🧋 Bubble-tea bon', location: 'Taipei' },
           { id: 'tw2', category: 'hiking', title: 'Alishan Sunrise', description: 'Zonsopgang tussen de wolkenzee.', points: 80, reward: '🌄 Thermos', location: 'Alishan' },
@@ -447,6 +469,7 @@
       },
       spain: {
         id: 'spain', name: 'Spanje', flag: '🇪🇸', period: 'Mei – Juli',
+        visibleFrom: '2026-05-01',
         challenges: [
           { id: 'es1', category: 'kite', title: 'Tarifa Sunset Kite', description: 'Kite met zonsondergang aan de Straat van Gibraltar.', points: 85, reward: '🕶️ Zonnebril koord', location: 'Tarifa' },
           { id: 'es3', category: 'culinair', title: 'Tapas Tocht', description: 'Probeer tapas in 3 verschillende bars en kies je favoriete hapje.', points: 60, reward: '🍷 Sangria traktatie', location: 'Diverse steden' },
@@ -477,6 +500,7 @@
       },
       portugal: {
         id: 'portugal', name: 'Portugal', flag: '🇵🇹', period: 'Mei – Juli',
+        visibleFrom: '2026-05-01',
         challenges: [
           { id: 'pt1', category: 'culinair', title: 'Kaasboer Vriend', description: 'Maak vrienden met een kaasboer op de markt en proef 3 verschillende kazen.', points: 65, reward: '🧀 Proefplankje', location: 'Diverse' },
           { id: 'pt2', category: 'sociaal', title: 'Azulejo Artist', description: 'Schilder je eigen azulejo (Portugese tegel).', points: 55, reward: '🟦 Mini-tegel van Danny', location: 'Diverse' },
@@ -511,6 +535,7 @@
       },
       nepal: {
         id: 'nepal', name: 'Nepal', flag: '🇳🇵', period: 'Oktober',
+        visibleFrom: '2026-10-01',
         challenges: [
           { id: 'np1', category: 'hiking', title: 'Poon Hill Sunrise', description: 'Zonsopgang met Himalaya panorama.', points: 110, reward: '🧢 Cap / buff', location: 'Ghorepani' },
           { id: 'np2', category: 'sociaal', title: 'Dashain Vibes', description: 'Maak een foto met tika & deel blessings.', points: 70, reward: '🎉 Festival souvenir', location: 'Kathmandu / Pokhara' },
@@ -548,6 +573,7 @@
         name: 'Camperlife',
         flag: '🚐',
         period: 'Overal & Altijd',
+        visibleFrom: '1970-01-01',
         challenges: [
          { id: 'cl1', category: 'camperlife', title: 'Wild Camp Spot Master', description: 'Vind de mooiste gratis kampeerplek en maak een foto van de camper met uitzicht.', points: 80, reward: '🍷 Flesje open bij zonsondergang', location: 'Overal' },
          { id: 'cl2', category: 'camperlife', title: 'Campfire Chef', description: 'Kook een complete maaltijd buiten, zonder de camperkeuken te gebruiken.', points: 70, reward: '🔥 Danny doet de afwas', location: 'Overal' },
@@ -646,17 +672,16 @@
       return { total, completed, points, completedIds };
     }
     function countByCategory(_state, category) {
-      return _state.completedIds
+      return (_state.completedIds || [])
         .map(id => getChallengeById(id))
         .filter(ch => ch && ch.category === category).length;
     }
     function uniqueCountriesForCategory(_state, category) {
       const s = new Set();
-      _state.completedIds.forEach(id => {
+      (_state.completedIds || []).forEach(id => {
         const ch = getChallengeById(id);
         if (ch && ch.category === category) {
-          const c = getCountryByChallengeId(id);
-          if (c) s.add(c.id);
+          s.add(ch.countryId);
         }
       });
       return s.size;
@@ -670,6 +695,14 @@
     }
     function formatPct(n) { return Math.round(n*100); }
     function degFromPct(p) { return Math.round(p * 360) + 'deg'; }
+
+    function isCountryOpen(country) {
+      if (!country || !country.visibleFrom) return true;
+      const openDate = new Date(country.visibleFrom + 'T00:00:00');
+      const today = new Date();
+      // compare only date parts
+      return openDate <= new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23,59,59);
+    }
 
     /* ------------------------
        Rendering
@@ -692,25 +725,27 @@
       const { total, completed, points } = counts();
       updateStats();
 
-      let html = `
-        <div class="filter-buttons">
-          ${['alles','culinair','hiking','kite','sociaal','wildcard','romance'].map(cat => `
-            <button class="filter-btn" data-filter="${cat}">${cat[0].toUpperCase()+cat.slice(1)}</button>
-          `).join('')}
-        </div>
-      `;
+      let html = `<div class="filter-buttons"></div>`;
+
+      const today = new Date();
 
       Object.values(data).forEach(country => {
         const totalC = country.challenges.length;
         const doneC = country.challenges.filter(ch => state.completed[ch.id]).length;
         const pct = totalC ? (doneC / totalC) : 0;
+        const open = isCountryOpen(country);
+        const openNote = open ? '' : `<div class="country-locked-note">Opent op ${country.visibleFrom}</div>`;
+
+        const challengesHtml = country.challenges.map(ch => renderChallengeCard(ch, open)).join('');
+
         html += `
-          <section class="country-section" id="sec-${country.id}">
-            <div class="country-header" onclick="toggleCountry('${country.id}')">
+          <div class="country-section">
+            <div class="country-header" ${open ? `onclick="toggleCountry('${country.id}')"` : ''}>
               <div class="country-flag">${country.flag}</div>
               <div class="country-info">
                 <h3>${country.name}</h3>
-                <span>${country.period} • ${doneC}/${totalC} voltooid</span>
+                <span>${country.period}</span>
+                ${openNote}
               </div>
               <div class="country-progress">
                 <div class="progress-circle" id="pc-${country.id}" style="--progress:${degFromPct(pct)}">
@@ -718,40 +753,32 @@
                 </div>
               </div>
             </div>
-            <div class="country-body" id="body-${country.id}">
-              ${country.challenges.map(ch => renderChallengeCard(ch)).join('')}
+            <div id="body-${country.id}" style="display:block;">
+              ${challengesHtml}
             </div>
-          </section>
+          </div>
         `;
       });
 
       container.innerHTML = html;
 
-      // filter logic
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          const filter = btn.dataset.filter;
-          filterChallenges(filter);
-        });
-      });
+      // wire up toggleCountry only for open headers (headers that have onclick attribute were set above)
+      // filter logic not critical; left as placeholder if needed later
     }
 
-    function renderChallengeCard(ch) {
+    function renderChallengeCard(ch, countryOpen) {
       const done = !!state.completed[ch.id];
-      const rewardLocked = !done;
+      const lockedClass = countryOpen ? '' : 'locked';
+      const reward = ch.reward ? `<div class="challenge-reward">🎁 ${ch.reward}</div>` : '';
       return `
-        <div class="challenge-card ${done ? 'completed' : ''}" data-challenge="${ch.id}" onclick="openModal('${ch.id}')">
+        <div class="challenge-card ${done ? 'completed' : ''} ${lockedClass}" data-challenge="${ch.id}" onclick="${countryOpen ? `openModal('${ch.id}')` : `openModal('${ch.id}')`}">
           <div class="challenge-header">
-            <span class="challenge-category">${ch.category}</span>
-            <span class="challenge-points">+${ch.points}p</span>
+            <div class="challenge-category">${ch.category || ''}</div>
+            <div class="challenge-points">${ch.points || 0} pts</div>
           </div>
           <div class="challenge-title">${ch.title}</div>
-          <div class="challenge-description">${ch.description}</div>
-          <div class="challenge-reward">
-            ${rewardLocked ? '🔒 Beloning verborgen' : '🎁 ' + ch.reward}
-          </div>
+          <div class="challenge-description">${ch.description || ''}</div>
+          ${reward}
         </div>
       `;
     }
@@ -795,20 +822,18 @@
         showNotification('Nieuwe badge(s): ' + newlyUnlocked.join(', '));
       }
 
+      const badgesHtml = achievements.map(a => {
+        const unlocked = state.achievementsUnlocked.includes(a.id);
+        return `<div class="achievement-badge ${unlocked ? 'unlocked' : 'locked'}"><div class="achievement-icon">${a.icon}</div><div class="achievement-name">${a.name}</div></div>`;
+      }).join('');
+
       const html = `
         <div class="leaderboard">
-          <div class="leaderboard-item"><strong>Anouk</strong><span>${_counts.points} punten • ${_counts.completed}/${_counts.total} challenges</span></div>
+          <div style="font-weight:600; margin-bottom:8px">Voortgang</div>
+          <div>Gevonden badges: ${state.achievementsUnlocked.length}</div>
         </div>
         <div class="achievement-grid">
-          ${achievements.map(a => {
-            const unlocked = state.achievementsUnlocked.includes(a.id);
-            return `
-              <div class="achievement-badge ${unlocked ? 'unlocked' : 'locked'}">
-                <div class="achievement-icon">${a.icon}</div>
-                <div class="achievement-name">${a.name}</div>
-              </div>
-            `;
-          }).join('')}
+          ${badgesHtml}
         </div>
       `;
       container.innerHTML = html;
@@ -822,29 +847,21 @@
       const boxes = rewardMilestones.map(m => {
         const unlocked = completed >= m.threshold;
         const status = unlocked ? 'Ontgrendeld' : `Vergrendel tot ${m.threshold} challenges`;
-        return `
-          <div class="mystery-box" onclick="openMilestone(${m.threshold})" style="opacity:${unlocked?1:0.6}">
-            <h4>🎁 Mystery Box @ ${m.threshold} challenges</h4>
-            <p>${unlocked ? 'Klik om te openen!' : status}</p>
-          </div>
-        `;
+        const btn = `<div class="mystery-box" onclick="openMilestone(${m.threshold})"><h4>${unlocked ? '🎉 ' + m.text : '🔒 Mystery Box'}</h4><p>${status}</p></div>`;
+        return btn;
       }).join('');
 
       const html = `
         ${boxes}
         <div class="leaderboard">
-          <div style="margin-bottom:8px; font-weight:600;">Ontgrendelde beloningen</div>
-          ${(state.rewardsUnlocked.length === 0)
-            ? '<div class="leaderboard-item">Nog geen beloningen ontgrendeld… 🚀</div>'
-            : state.rewardsUnlocked.map(t => `<div class="leaderboard-item">${t}</div>`).join('')
-          }
+          <div style="font-weight:600">Beloningen ontgrendeld: ${state.rewardsUnlocked.length}</div>
         </div>
       `;
       container.innerHTML = html;
     }
 
     function updateStats() {
-      const { total, completed, points } = counts();
+      const { total, completed, points, completedIds } = counts();
       document.getElementById('totalPoints').textContent = points;
       document.getElementById('completedChallenges').textContent = `${completed}/${total}`;
       const pct = total ? (completed/total)*100 : 0;
@@ -872,13 +889,29 @@
       currentModalChallengeId = chId;
       const ch = getChallengeById(chId);
       if (!ch) return;
+      const country = data[ch.countryId];
+      const open = isCountryOpen(country);
+
+      if (!open) {
+        // show locked modal
+        document.getElementById('modalTitle').textContent = `${ch.title} (Preview)`;
+        document.getElementById('modalDescription').textContent = `${ch.description || ''}`;
+        document.getElementById('modalLocation').textContent = ch.location ? ('📍 ' + ch.location) : '';
+        document.getElementById('modalRewardBox').style.display = 'block';
+        document.getElementById('modalRewardBox').textContent = `🔒 Opent op ${country.visibleFrom}`;
+        document.getElementById('completeBtn').style.display = 'none';
+        document.getElementById('undoBtn').style.display = 'none';
+        document.getElementById('challengeModal').classList.add('active');
+        return;
+      }
+
       document.getElementById('modalTitle').textContent = ch.title;
       document.getElementById('modalDescription').textContent = ch.description;
       document.getElementById('modalLocation').textContent = ch.location ? ('📍 ' + ch.location) : '';
       const rewardBox = document.getElementById('modalRewardBox');
       const done = !!state.completed[ch.id];
       rewardBox.style.display = done ? 'block' : 'none';
-      rewardBox.textContent = '🎁 ' + ch.reward;
+      rewardBox.textContent = '🎁 ' + (ch.reward || 'Geen beloning opgegeven');
 
       document.getElementById('completeBtn').style.display = done ? 'none' : 'inline-block';
       document.getElementById('undoBtn').style.display = done ? 'inline-block' : 'none';
@@ -891,6 +924,15 @@
     }
     function completeChallenge() {
       if (!currentModalChallengeId) return;
+      // verify country is open
+      const ch = getChallengeById(currentModalChallengeId);
+      if (!ch) return;
+      const country = data[ch.countryId];
+      if (!isCountryOpen(country)) {
+        showNotification('Dit land is nog niet open.');
+        closeModal();
+        return;
+      }
       state.completed[currentModalChallengeId] = true;
       saveState();
       closeModal();
@@ -913,10 +955,11 @@
       rewardMilestones.forEach(m => {
         if (completed >= m.threshold && !state.rewardsUnlocked.includes(m.text)) {
           state.rewardsUnlocked.push(m.text);
+          showNotification('Beloning ontgrendeld: ' + m.text);
           saveState();
-          showNotification(m.text);
         }
       });
+      updateStats();
     }
     function openMilestone(threshold) {
       const m = rewardMilestones.find(x => x.threshold === threshold);
@@ -936,12 +979,12 @@
       const wrap = document.getElementById('countdownContainer');
       const html = `
         <div class="countdown">
-          <div><strong>⏳Countdown tot ✈️🚐 (${tripStartDate})</strong></div>
+          <div style="font-weight:600">Dagen tot vertrek</div>
           <div class="countdown-timer">
-            <div class="countdown-item"><div class="countdown-value" id="cd-days">0</div><div class="countdown-label">dagen</div></div>
-            <div class="countdown-item"><div class="countdown-value" id="cd-hours">0</div><div class="countdown-label">uren</div></div>
-            <div class="countdown-item"><div class="countdown-value" id="cd-mins">0</div><div class="countdown-label">min</div></div>
-            <div class="countdown-item"><div class="countdown-value" id="cd-secs">0</div><div class="countdown-label">sec</div></div>
+            <div class="countdown-item"><div id="cd-days" class="countdown-value">0</div><div class="countdown-label">Dagen</div></div>
+            <div class="countdown-item"><div id="cd-hours" class="countdown-value">0</div><div class="countdown-label">Uren</div></div>
+            <div class="countdown-item"><div id="cd-mins" class="countdown-value">0</div><div class="countdown-label">Minuten</div></div>
+            <div class="countdown-item"><div id="cd-secs" class="countdown-value">0</div><div class="countdown-label">Seconden</div></div>
           </div>
         </div>
       `;
@@ -957,10 +1000,11 @@
       const h = Math.floor(diff / (1000*60*60)); diff -= h*60*60*1000;
       const m = Math.floor(diff / (1000*60)); diff -= m*60*1000;
       const s = Math.floor(diff / 1000);
-      document.getElementById('cd-days').textContent = d;
-      document.getElementById('cd-hours').textContent = h;
-      document.getElementById('cd-mins').textContent = m;
-      document.getElementById('cd-secs').textContent = s;
+      const elDays = document.getElementById('cd-days');
+      if (elDays) elDays.textContent = d;
+      const elH = document.getElementById('cd-hours'); if (elH) elH.textContent = h;
+      const elM = document.getElementById('cd-mins'); if (elM) elM.textContent = m;
+      const elS = document.getElementById('cd-secs'); if (elS) elS.textContent = s;
     }
     function maybeShowSpecialBanner() {
       const c = document.getElementById('specialBannerContainer');
@@ -1027,6 +1071,11 @@
   </script>
 </body>
 </html>
+
+
+
+
+
 
 
 
