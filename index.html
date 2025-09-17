@@ -793,7 +793,8 @@
     function renderChallengeCard(ch, countryOpen) {
       const done = !!state.completed[ch.id];
       const lockedClass = countryOpen ? '' : 'locked';
-      const reward = ch.reward ? `<div class="challenge-reward">🎁 ${ch.reward}</div>` : '';
+      // show reward only when challenge is completed
+      const reward = (done && ch.reward) ? `<div class="challenge-reward">🎁 ${ch.reward}</div>` : '';
       return `
         <div class="challenge-card ${done ? 'completed' : ''} ${lockedClass}" data-challenge="${ch.id}" onclick="${countryOpen ? `openModal('${ch.id}')` : `openModal('${ch.id}')`}">
           <div class="challenge-header">
@@ -1095,6 +1096,11 @@
   </script>
 </body>
 </html>
+
+
+
+
+
 
 
 
