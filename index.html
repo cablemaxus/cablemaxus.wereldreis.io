@@ -226,30 +226,7 @@
     .countdown-item { text-align: center; }
     .countdown-value { font-size: 28px; font-weight: bold; color: #667eea; }
     .countdown-label { font-size: 11px; color: #666; text-transform: uppercase; }
-    @media (max-width: 500px) { .app-container { max-width: 100%; 
-    } 
-    .store { background:#fff; border-radius:14px; padding:14px; box-shadow:0 3px 12px rgba(0,0,0,.06); margin-top:16px; }
-    .store-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-    .store-balance { font-weight:700; font-size:14px; color:#667eea; }
-    .store-grid { display:grid; grid-template-columns:1fr; gap:10px; }
-    @media (min-width:480px){ .store-grid{ grid-template-columns:1fr 1fr; } }
-    .store-item { background:linear-gradient(135deg,#f5f7fa 0%, #e8ecf8 100%); border:1px solid #e0e6ff; border-radius:12px; padding:12px; display:flex; gap:10px; align-items:center; }
-    .store-emoji { font-size:22px; }
-    .store-main { flex:1; }
-    .store-title { font-weight:700; color:#333; font-size:14px; }
-    .store-desc { font-size:12px; color:#666; margin-top:2px; }
-    .store-cost { font-size:12px; color:#667eea; margin-top:6px; font-weight:700; }
-    .redeem-btn {
-    background:linear-gradient(135deg,#667eea 0%, #764ba2 100%);
-    color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; transition:transform .2s, opacity .2s;
-    }
-    .redeem-btn:hover { transform: translateY(-1px); }
-    .redeem-btn[disabled] { opacity:.45; cursor:not-allowed; }
-    .inventory-pill {
-    display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid #e0e0e0;
-    padding:8px 10px; border-radius:999px; margin:4px 6px 0 0; font-size:12px;
-  }
-                              }
+    @media (max-width: 500px) { .app-container { max-width: 100%; } }
   </style>
 </head>
 <body>
@@ -617,53 +594,6 @@
       { threshold: 100, text: 'Fancy pancy dinner naar keuze 🍽️' },
       { threshold: 150, text: 'Je bent goud waard 🎁'}
     ];
-    // 🎒 Reis-proof puntenwinkel — praktisch + fun (herhaalbare items ondersteund)
-  const storeItems = [
-  // — Essentials / Utilities —
-    { id:'u1', emoji:'📶', title:'eSIM Data Top-Up (3 GB)', desc:'Mobiele data voor maps, vertalen & bellen.', cost:240, category:'Essentials', repeatable:true },
-    { id:'u2', emoji:'🧺', title:'Laundry Day Pass', desc:'Wassen + drogen + detergent geregeld.', cost:180, category:'Essentials', repeatable:true },
-    { id:'u3', emoji:'🔥', title:'Gasvulling / Butaan', desc:'Nieuwe gasfles/-canister voor koken.', cost:220, category:'Essentials', repeatable:true },
-    { id:'u4', emoji:'💧', title:'Watertank & Filters', desc:'Tank vullen + filter vervangen/uitkoken.', cost:160, category:'Essentials', repeatable:true },
-    { id:'u5', emoji:'🔋', title:'Power Boost', desc:'Powerbank + devices full charge (Danny regelt).', cost:140, category:'Essentials', repeatable:true },
-    { id:'u6', emoji:'🧴', title:'Sunscreen + Deet Refill', desc:'Zon & muggen setje aangevuld.', cost:130, category:'Essentials', repeatable:true },
-    { id:'u7', emoji:'💊', title:'Apotheek-Run Kit', desc:'Pijnstiller, pleisters, ORS, desinfectie.', cost:170, category:'Essentials', repeatable:true },
-    { id:'u8', emoji:'🛜', title:'Wi-Fi Café Blok (2 uur)', desc:'Stabiel internet + 2 drankjes.', cost:160, category:'Essentials', repeatable:true },
-
-  // — Camperlife Upgrades —
-    { id:'c1', emoji:'⚡', title:'Camping met Stroom (1 nacht)', desc:'Upgrade naar powered site.', cost:320, category:'Camperlife', repeatable:true },
-    { id:'c2', emoji:'🚿', title:'Extra Heet Douche Token', desc:'Lang & luxe douchen. 😌', cost:120, category:'Camperlife', repeatable:true },
-    { id:'c3', emoji:'🍳', title:'No-Cook Night', desc:'Danny kookt buiten of bestelt iets lekkers.', cost:260, category:'Camperlife', repeatable:true },
-    { id:'c4', emoji:'🧼', title:'Camper Deep-Clean Light', desc:'Opfrisbeurt binnen (Danny doet).', cost:240, category:'Camperlife', repeatable:true },
-  
-  // — Food & Comfort —
-    { id:'f1', emoji:'☕', title:'Koffiecredit (2 Specialty)', desc:'Barista koffies naar keuze.', cost:120, category:'Food/Comfort', repeatable:true },
-    { id:'f2', emoji:'🥗', title:'Gezonde Boodschappen Boost', desc:'Verse fruits & veggies run.', cost:200, category:'Food/Comfort', repeatable:true },
-    { id:'f3', emoji:'🍫', title:'Snack Stash', desc:'Reepjes, nootjes, nood-geluksmoment.', cost:110, category:'Food/Comfort', repeatable:true },
-    { id:'f4', emoji:'🥐', title:'Luxe Ontbijt op Bed', desc:'Vers & uitgebreid; jij blijft liggen.', cost:200, category:'Food/Comfort', repeatable:true },
-
-  // — Logistics / Admin —
-    { id:'a1', emoji:'🗺️', title:'Route-Planning Power Hour', desc:'Danny plant 3 dagen incl. POI’s.', cost:280, category:'Logistiek', repeatable:true },
-    { id:'a2', emoji:'📞', title:'Reserveringen Regelen', desc:'Calls/boekingen voor tours/stays.', cost:240, category:'Logistiek', repeatable:true },
-    { id:'a3', emoji:'🚕', title:'Grab/Uber Rit Regen-Joker', desc:'Droog & snel van A naar B.', cost:220, category:'Logistiek', repeatable:true },
-    { id:'a4', emoji:'📸', title:'Foto-Print Pack (10)', desc:'Fysieke prints voor in de camper.', cost:190, category:'Logistiek', repeatable:true },
-
-  // — Body & Mind —
-    { id:'b1', emoji:'💆', title:'Schouder/Back Massage (25m)', desc:'Spierpijn weg na hike/kite.', cost:200, category:'Body/Mind', repeatable:true },
-    { id:'b2', emoji:'🧖‍♀️', title:'DIY Spa-Avond', desc:'Maskers, scrub, kaarsjes, muziek.', cost:260, category:'Body/Mind', repeatable:true },
-    { id:'b3', emoji:'😴', title:'Sleep-In Pass', desc:'Geen vroeg start; slow morning.', cost:180, category:'Body/Mind', repeatable:true },
-    { id:'b4', emoji:'🧘', title:'Sunrise Yoga Set-Up', desc:'Mat, uitzichtplek, playlist geregeld.', cost:160, category:'Body/Mind', repeatable:true },
-
-  // — Fun / Experiences (mini) —
-    { id:'x1', emoji:'🎧', title:'Local Music Night', desc:'Bar met live-muziek of open-mic.', cost:220, category:'Fun', repeatable:true },
-    { id:'x2', emoji:'🍽️', title:'Date-Night Diner', desc:'Romantisch diner (jij kiest).', cost:350, category:'Fun', repeatable:true },
-    { id:'x3', emoji:'🏍️', title:'Scooter Huur Bijdrage (½ dag)', desc:'Vrijheid voor strand/bergen.', cost:300, category:'Fun', repeatable:true },
-    { id:'x4', emoji:'🍳', title:'Lokale Kookworkshop Co-pay', desc:'Samen koken met locals.', cost:420, category:'Fun', repeatable:true },
-
-  // — Social / Chores —
-    { id:'s1', emoji:'🧽', title:'Chore Swap', desc:'Danny doet afwas & opruimdienst.', cost:150, category:'Social/Chores', repeatable:true },
-    { id:'s2', emoji:'🎒', title:'Backpack Carry Day', desc:'Danny draagt jouw pack.', cost:180, category:'Social/Chores', repeatable:true },
-    { id:'s3', emoji:'📝', title:'Dagboek/Foto-Curatie', desc:'Danny selecteert & bijschrijft.', cost:170, category:'Social/Chores', repeatable:true }
-];
 
     /* ------------------------
        State & Storage
@@ -671,14 +601,11 @@
     const STORAGE_KEY = 'wr_state_v1';
     function defaultState() {
       return {
-       completed: {},            // { challengeId: true }
-       rewardsUnlocked: [],      // milestone texts
-       achievementsUnlocked: [], // achievement ids
-       pointsSpent: 0,           // 🆕 totaal bestede punten
-       inventory: [],            // 🆕 unieke gekochte items
-       inventoryCounts: {}       // 🆕 { itemId: aantal keer gekocht }
-     };
-   }
+        completed: {},            // { challengeId: true }
+        rewardsUnlocked: [],      // milestone thresholds reached
+        achievementsUnlocked: [], // achievement ids
+      };
+    }
     function loadState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -717,10 +644,6 @@
         const ch = getChallengeById(id); return sum + (ch ? ch.points : 0);
       }, 0);
       return { total, completed, points, completedIds };
-    }
-    function getBalancePoints() {
-      const { points } = counts();
-      return Math.max(0, points - (state.pointsSpent || 0));
     }
     function countByCategory(_state, category) {
       return _state.completedIds
@@ -891,89 +814,38 @@
       container.innerHTML = html;
     }
 
-  function renderRewards(container) {
-  updateStats();
-  const { completed } = counts();
-  const balance = getBalancePoints();
+    function renderRewards(container) {
+      updateStats();
+      const { completed } = counts();
 
-  // Milestones (mystery boxes)
-  const boxes = rewardMilestones.map(m => {
-    const unlocked = completed >= m.threshold;
-    const status = unlocked ? 'Klik om te openen!' : `Vergrendel tot ${m.threshold} challenges`;
-    return `
-      <div class="mystery-box" onclick="openMilestone(${m.threshold})" style="opacity:${unlocked?1:0.6}">
-        <h4>🎁 Mystery Box @ ${m.threshold} challenges</h4>
-        <p>${status}</p>
-      </div>
-    `;
-  }).join('');
+      // Milestones (mystery boxes)
+      const boxes = rewardMilestones.map(m => {
+        const unlocked = completed >= m.threshold;
+        const status = unlocked ? 'Ontgrendeld' : `Vergrendel tot ${m.threshold} challenges`;
+        return `
+          <div class="mystery-box" onclick="openMilestone(${m.threshold})" style="opacity:${unlocked?1:0.6}">
+            <h4>🎁 Mystery Box @ ${m.threshold} challenges</h4>
+            <p>${unlocked ? 'Klik om te openen!' : status}</p>
+          </div>
+        `;
+      }).join('');
 
-  // Winkel
-  const store = `
-    <div class="store">
-      <div class="store-header">
-        <div style="font-weight:700;">🛍️ Puntenwinkel</div>
-        <div class="store-balance">Beschikbaar: ${balance} p</div>
-      </div>
-      <div class="store-grid">
-        ${storeItems.map(it => {
-          const afford = balance >= it.cost;
-          const owned = state.inventory?.includes(it.id);
-          const label = it.repeatable
-            ? (afford ? 'Opnieuw kopen' : 'Te weinig')
-            : (owned ? '✔️ Gekocht' : (afford ? 'Inwisselen' : 'Te weinig'));
-          const disabled = it.repeatable ? (!afford ? 'disabled' : '') : (owned || !afford ? 'disabled' : '');
-          return `
-            <div class="store-item">
-              <div class="store-emoji">${it.emoji}</div>
-              <div class="store-main">
-                <div class="store-title">${it.title}${owned && !it.repeatable ? ' • <span style="color:#10b981">in bezit</span>' : ''}</div>
-                <div class="store-desc">${it.desc}</div>
-                <div class="store-cost">Kosten: ${it.cost} p • <span style="opacity:.8">${it.category}</span></div>
-              </div>
-              <button class="redeem-btn" ${disabled} onclick="redeemItem('${it.id}')">${label}</button>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    </div>
-  `;
-
-  // Inventaris + milestone-lijst
-  const inventoryList = (state.inventory?.length)
-    ? state.inventory.map(id => {
-        const it = storeItems.find(x => x.id === id);
-        if (!it) return '';
-        const qty = state.inventoryCounts?.[id] || 1;
-        const qtyTxt = qty > 1 ? ` ×${qty}` : '';
-        return `<span class="inventory-pill">${it.emoji} ${it.title}${qtyTxt}</span>`;
-      }).join('')
-    : '<div class="leaderboard-item">Nog niets gekocht… hint: voltooi challenges om punten te verdienen ✨</div>';
-
-  const unlockedList = (state.rewardsUnlocked.length === 0)
-    ? '<div class="leaderboard-item">Nog geen milestone-beloningen… 🚀</div>'
-    : state.rewardsUnlocked.map(t => `<div class="leaderboard-item">${t}</div>`).join('');
-
-  container.innerHTML = `
-    ${boxes}
-    <div class="leaderboard" style="margin-top:14px;">
-      <div style="margin-bottom:8px; font-weight:600;">Ontgrendelde milestone-beloningen</div>
-      ${unlockedList}
-    </div>
-
-    ${store}
-
-    <div class="leaderboard" style="margin-top:14px;">
-      <div style="margin-bottom:8px; font-weight:600;">Je inventaris</div>
-      ${inventoryList}
-    </div>
-  `;
-}
-
+      const html = `
+        ${boxes}
+        <div class="leaderboard">
+          <div style="margin-bottom:8px; font-weight:600;">Ontgrendelde beloningen</div>
+          ${(state.rewardsUnlocked.length === 0)
+            ? '<div class="leaderboard-item">Nog geen beloningen ontgrendeld… 🚀</div>'
+            : state.rewardsUnlocked.map(t => `<div class="leaderboard-item">${t}</div>`).join('')
+          }
+        </div>
+      `;
+      container.innerHTML = html;
+    }
 
     function updateStats() {
       const { total, completed, points } = counts();
-      document.getElementById('totalPoints').textContent = getBalancePoints();
+      document.getElementById('totalPoints').textContent = points;
       document.getElementById('completedChallenges').textContent = `${completed}/${total}`;
       const pct = total ? (completed/total)*100 : 0;
       document.getElementById('progressBar').style.width = pct + '%';
@@ -1044,25 +916,6 @@
           saveState();
           showNotification(m.text);
         }
-    function redeemItem(itemId) {
-      const item = storeItems.find(i => i.id === itemId);
-      if (!item) return;
-      const balance = getBalancePoints();
-      if (balance < item.cost) {
-        showNotification(`Je mist nog ${item.cost - balance} punten voor: ${item.title}.`);
-        return;
-      }
-  // update state
-     state.pointsSpent = (state.pointsSpent || 0) + item.cost;
-     if (!state.inventory.includes(item.id)) state.inventory.push(item.id);
-     state.inventoryCounts[item.id] = (state.inventoryCounts[item.id] || 0) + 1;
-
-     saveState();
-     showNotification(`${item.emoji}  Gekocht: ${item.title}!`);
-     const active = document.querySelector('.tab.active')?.getAttribute('data-tab') || 'rewards';
-     showTab(active);
-}
-
       });
     }
     function openMilestone(threshold) {
@@ -1169,13 +1022,13 @@
     window.completeChallenge = completeChallenge;
     window.undoChallenge = undoChallenge;
     window.openMilestone = openMilestone;
-    window.redeemItem = redeemItem;
-
 
     document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
+
+
 
 
 
