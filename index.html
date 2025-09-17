@@ -303,14 +303,25 @@
     // ⚙️ Pas hier eenvoudig je startdatum aan (YYYY-MM-DD)
     const tripStartDate = localStorage.getItem('wr_tripStart') || '2025-12-30';
 
-    // helper: next upcoming saturday (gebruik +7 als vandaag zaterdag)
-    function nextUpcomingSaturdayISO() {
+    // helper: next upcoming saturday at 12:00 (gebruik +7 als vandaag zaterdag)
+    function nextUpcomingSaturdayAtNoonISO() {
       const today = new Date();
+      // in JS: 0=Sun .. 6=Sat
       let daysUntil = (6 - today.getDay() + 7) % 7;
-      if (daysUntil === 0) daysUntil = 7; // volgende zaterdag
+      if (daysUntil === 0) daysUntil = 7; // volgende zaterdag, niet vandaag
       const d = new Date(today);
       d.setDate(today.getDate() + daysUntil);
-      return d.toISOString().slice(0,10);
+      // set to 12:00 local time
+      d.setHours(12, 0, 0, 0);
+      // produce full ISO without timezone conversion (local)
+      const pad = n => String(n).padStart(2,'0');
+      const y = d.getFullYear();
+      const m = pad(d.getMonth()+1);
+      const day = pad(d.getDate());
+      const hh = pad(d.getHours());
+      const mm = pad(d.getMinutes());
+      const ss = pad(d.getSeconds());
+      return `${y}-${m}-${day}T${hh}:${mm}:${ss}`;
     }
 
     // Dataset per land (compact maar uitbreidbaar)
@@ -320,8 +331,9 @@
         name: 'Nederland',
         flag: '🇳🇱',
         period: 'vandaag',
-        // visibleFrom bepaalt wanneer het land "open" is (YYYY-MM-DD)
-        visibleFrom: nextUpcomingSaturdayISO(),
+        // visibleFrom bepaalt wanneer het land "open" is (YYYY-MM-DD of YYYY-MM-DDTHH:MM:SS)
+        // Amsterdam: volgende zaterdag 12:00 lokale tijd
+        visibleFrom: nextUpcomingSaturdayAtNoonISO(),
         challenges: [
           { id: 'nl1', category: 'amsterdam', title: 'De dierenriem', description: 'drink minimaal een biertje bij 5 verschillende kroegen uit de dierenriem', points: 50, reward: '🌄Ontbijtje op bed morgenochtend', location: 'Amsterdam' },
           { id: 'nl2', category: 'amsterdam', title: 'Groepsfoto', description: 'Maak de leukste groepsfoto ever voor aan de muur in onze Camper', points: 50, reward: '🍺 Shots!!!!!', location: 'Amsterdam' },
@@ -698,10 +710,12 @@
 
     function isCountryOpen(country) {
       if (!country || !country.visibleFrom) return true;
-      const openDate = new Date(country.visibleFrom + 'T00:00:00');
-      const today = new Date();
-      // compare only date parts
-      return openDate <= new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23,59,59);
+      // visibleFrom may be "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS"
+      let iso = country.visibleFrom;
+      if (!iso.includes('T')) iso = iso + 'T00:00:00';
+      const openDate = new Date(iso);
+      const now = new Date();
+      return openDate <= now;
     }
 
     /* ------------------------
@@ -727,16 +741,29 @@
 
       let html = `<div class="filter-buttons"></div>`;
 
-      const today = new Date();
-
       Object.values(data).forEach(country => {
         const totalC = country.challenges.length;
         const doneC = country.challenges.filter(ch => state.completed[ch.id]).length;
         const pct = totalC ? (doneC / totalC) : 0;
         const open = isCountryOpen(country);
-        const openNote = open ? '' : `<div class="country-locked-note">Opent op ${country.visibleFrom}</div>`;
 
-        const challengesHtml = country.challenges.map(ch => renderChallengeCard(ch, open)).join('');
+        // show readable open note (include time if present)
+        let openNote = '';
+        if (!open) {
+          try {
+            const vis = country.visibleFrom;
+            const dt = vis.includes('T') ? new Date(vis) : new Date(vis + 'T00:00:00');
+            const formatted = dt.toLocaleString('nl-NL', { day:'2-digit', month:'long', hour:'2-digit', minute:'2-digit' });
+            openNote = `<div class="country-locked-note">Opent op ${formatted}</div>`;
+          } catch(e) {
+            openNote = `<div class="country-locked-note">Opent op ${country.visibleFrom}</div>`;
+          }
+        }
+
+        // ONLY show challenges when country is open OR if this is camperlife (always visible)
+        const challengesHtml = (open || country.id === 'camperlife')
+          ? country.challenges.map(ch => renderChallengeCard(ch, open)).join('')
+          : ''; // hidden until open
 
         html += `
           <div class="country-section">
@@ -753,7 +780,7 @@
                 </div>
               </div>
             </div>
-            <div id="body-${country.id}" style="display:block;">
+            <div id="body-${country.id}" style="display:${(open || country.id === 'camperlife') ? 'block' : 'none'};">
               ${challengesHtml}
             </div>
           </div>
@@ -761,9 +788,6 @@
       });
 
       container.innerHTML = html;
-
-      // wire up toggleCountry only for open headers (headers that have onclick attribute were set above)
-      // filter logic not critical; left as placeholder if needed later
     }
 
     function renderChallengeCard(ch, countryOpen) {
@@ -1071,6 +1095,10 @@
   </script>
 </body>
 </html>
+
+
+
+
 
 
 
