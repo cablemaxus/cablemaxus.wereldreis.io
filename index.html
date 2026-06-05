@@ -677,6 +677,7 @@
         customChallenges: [],      // generated local challenges
         currentPlace: '',
         emailedRewards: {},
+        emailedChallengeRewards: {},
         lastSavedAt: null,
       };
     }
@@ -690,6 +691,7 @@
         achievementsUnlocked: Array.isArray(parsed.achievementsUnlocked) ? parsed.achievementsUnlocked : [],
         customChallenges: Array.isArray(parsed.customChallenges) ? parsed.customChallenges : [],
         emailedRewards: parsed.emailedRewards || {},
+        emailedChallengeRewards: parsed.emailedChallengeRewards || {},
       });
     }
     function loadState() {
@@ -1228,6 +1230,7 @@
         return;
       }
       state.completed[currentModalChallengeId] = true;
+      emailChallengeRewardDraft(ch);
       saveState();
       closeModal();
       // Rewards per milestone
@@ -1289,6 +1292,30 @@
       const body = rewardEmailBody([rewardText]);
       const url = `mailto:${REWARD_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       if (automatic) setTimeout(() => { window.location.href = url; }, 500);
+    }
+    function emailChallengeRewardDraft(challenge) {
+      if (!challenge || !challenge.reward || state.emailedChallengeRewards[challenge.id]) return;
+      state.emailedChallengeRewards[challenge.id] = true;
+      const country = getCountryByChallengeId(challenge.id);
+      const subject = `Challenge beloning: ${challenge.title}`;
+      const body = [
+        'Hoi Danny,',
+        '',
+        "Er is een challenge voltooid in Anouk's Wereldreis Challenge:",
+        '',
+        `Challenge: ${challenge.title}`,
+        `Beloning: ${challenge.reward}`,
+        challenge.location ? `Locatie: ${challenge.location}` : '',
+        country ? `Land/categorie: ${country.name}` : '',
+        '',
+        `Punten: ${challenge.points || 0}`,
+        '',
+        'Liefs,',
+        'Anouk'
+      ].filter(Boolean).join('\n');
+      setTimeout(() => {
+        window.location.href = `mailto:${REWARD_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      }, 500);
     }
     function mailUnlockedRewards() {
       if (!state.rewardsUnlocked.length) {
@@ -1434,7 +1461,6 @@
   </script>
 </body>
 </html>
-
 
 
 
