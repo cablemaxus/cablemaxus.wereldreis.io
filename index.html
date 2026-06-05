@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🌍 Anouk's World Challenge 2026</title>
+  <title>🌍 Anouk's Wereldreis Challenge 2026</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -232,6 +232,27 @@
     .countdown-value { font-size: 28px; font-weight: bold; color: #667eea; }
     .countdown-label { font-size: 11px; color: #666; text-transform: uppercase; }
     .country-locked-note { font-size: 12px; color: #a33; margin-top: 8px; }
+    .location-panel, .backup-panel {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      border-radius: 12px; padding: 15px; margin-bottom: 20px;
+    }
+    .location-panel input {
+      width: 100%; border: 1px solid #d7dce8; border-radius: 10px;
+      padding: 11px 12px; margin: 10px 0; font-size: 15px;
+    }
+    .location-actions, .modal-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .small-button {
+      border: 1px solid #d7dce8; background: #fff; color: #4b5563;
+      padding: 9px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .small-button:hover { border-color: #667eea; color: #667eea; transform: translateY(-1px); }
+    .small-button.primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border-color: transparent; }
+    .small-button.danger { color: #b42318; border-color: #f4b8b2; }
+    .muted-note { color: #666; font-size: 12px; line-height: 1.4; margin-top: 8px; }
+    .match-chip { display: inline-block; margin-top: 8px; font-size: 11px; color: #667eea; font-weight: 600; }
+    .backup-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid rgba(102,126,234,0.15); }
+    .backup-row:first-child { border-top: 0; }
     @media (max-width: 500px) { .app-container { max-width: 100%; } }
   </style>
 </head>
@@ -287,6 +308,9 @@
       <div id="modalRewardBox" class="challenge-reward" style="display:none; margin-top:14px;"></div>
       <button id="completeBtn" class="complete-button" onclick="completeChallenge()">✓ Challenge Voltooid!</button>
       <button id="undoBtn" class="complete-button" style="display:none; margin-left:10px; background:linear-gradient(135deg,#999,#777)" onclick="undoChallenge()">↩ Ongedaan maken</button>
+      <div class="modal-actions" style="margin-top:14px;">
+        <button id="hideBtn" class="small-button danger" onclick="hideChallenge()">Verberg challenge</button>
+      </div>
     </div>
   </div>
 
@@ -637,25 +661,81 @@
        State & Storage
        ------------------------ */
     const STORAGE_KEY = 'wr_state_v1';
+    const STORAGE_BACKUP_KEY = 'wr_state_v1_backup';
+    const STORAGE_SNAPSHOT_KEY = 'wr_state_v1_snapshot';
+    const DB_NAME = 'wereldreis-challenge-db';
+    const DB_STORE = 'state';
+    const DB_KEY = 'latest';
+    const REWARD_EMAIL = 'dannyderksen@gmail.com';
+
     function defaultState() {
       return {
         completed: {},            // { challengeId: true }
         rewardsUnlocked: [],      // milestone thresholds reached
         achievementsUnlocked: [], // achievement ids
+        hiddenChallenges: {},      // { challengeId: true }
+        customChallenges: [],      // generated local challenges
+        currentPlace: '',
+        emailedRewards: {},
+        lastSavedAt: null,
       };
     }
-    function loadState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return defaultState();
-        const parsed = JSON.parse(raw);
-        return Object.assign(defaultState(), parsed);
-      } catch(e) {
-        console.warn('State load failed', e);
-        return defaultState();
-      }
+    function normalizeState(value) {
+      const base = defaultState();
+      const parsed = value && typeof value === 'object' ? value : {};
+      return Object.assign(base, parsed, {
+        completed: parsed.completed || {},
+        hiddenChallenges: parsed.hiddenChallenges || {},
+        rewardsUnlocked: Array.isArray(parsed.rewardsUnlocked) ? parsed.rewardsUnlocked : [],
+        achievementsUnlocked: Array.isArray(parsed.achievementsUnlocked) ? parsed.achievementsUnlocked : [],
+        customChallenges: Array.isArray(parsed.customChallenges) ? parsed.customChallenges : [],
+        emailedRewards: parsed.emailedRewards || {},
+      });
     }
-    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    function loadState() {
+      for (const key of [STORAGE_KEY, STORAGE_BACKUP_KEY, STORAGE_SNAPSHOT_KEY]) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) return normalizeState(JSON.parse(raw));
+        } catch(e) {
+          console.warn('State load failed for', key, e);
+        }
+      }
+      return defaultState();
+    }
+    function openStateDb() {
+      if (!('indexedDB' in window)) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+      });
+    }
+    function readStateFromDb() {
+      return openStateDb().then(db => new Promise((resolve) => {
+        if (!db) return resolve(null);
+        const tx = db.transaction(DB_STORE, 'readonly');
+        const req = tx.objectStore(DB_STORE).get(DB_KEY);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      }));
+    }
+    function writeStateToDb(value) {
+      openStateDb().then(db => {
+        if (!db) return;
+        const tx = db.transaction(DB_STORE, 'readwrite');
+        tx.objectStore(DB_STORE).put(value, DB_KEY);
+      }).catch(e => console.warn('IndexedDB save failed', e));
+    }
+    function saveState() {
+      state.lastSavedAt = new Date().toISOString();
+      const serialized = JSON.stringify(state);
+      localStorage.setItem(STORAGE_KEY, serialized);
+      localStorage.setItem(STORAGE_BACKUP_KEY, serialized);
+      localStorage.setItem(STORAGE_SNAPSHOT_KEY, serialized);
+      writeStateToDb(state);
+    }
 
     let state = loadState();
     let currentModalChallengeId = null;
@@ -663,20 +743,40 @@
     /* ------------------------
        Helpers
        ------------------------ */
+    function customCountry() {
+      return {
+        id: 'custom',
+        name: state.currentPlace ? `Op jouw plek: ${state.currentPlace}` : 'Op jouw plek',
+        flag: '📍',
+        period: 'Gegenereerde challenges',
+        visibleFrom: '1970-01-01',
+        challenges: state.customChallenges || []
+      };
+    }
+    function countryList() {
+      const list = Object.values(data);
+      if ((state.customChallenges || []).length) list.unshift(customCountry());
+      return list;
+    }
     function allChallenges() {
-      return Object.values(data).flatMap(country => country.challenges.map(ch => ({...ch, countryId: country.id})));
+      return countryList()
+        .flatMap(country => country.challenges.map(ch => ({...ch, countryId: country.id})))
+        .filter(ch => !state.hiddenChallenges[ch.id]);
     }
     function getChallengeById(id) {
-      return allChallenges().find(c => c.id === id);
+      return countryList()
+        .flatMap(country => country.challenges.map(ch => ({...ch, countryId: country.id})))
+        .find(c => c.id === id);
     }
     function getCountryByChallengeId(id) {
       const ch = getChallengeById(id);
-      return ch ? data[ch.countryId] : null;
+      return ch ? (ch.countryId === 'custom' ? customCountry() : data[ch.countryId]) : null;
     }
     function counts() {
       const list = allChallenges();
       const total = list.length;
-      const completedIds = Object.keys(state.completed).filter(k => state.completed[k]);
+      const availableIds = new Set(list.map(ch => ch.id));
+      const completedIds = Object.keys(state.completed).filter(k => state.completed[k] && availableIds.has(k));
       const completed = completedIds.length;
       const points = completedIds.reduce((sum, id) => {
         const ch = getChallengeById(id); return sum + (ch ? ch.points : 0);
@@ -707,6 +807,44 @@
     }
     function formatPct(n) { return Math.round(n*100); }
     function degFromPct(p) { return Math.round(p * 360) + 'deg'; }
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+    function normalizeText(value) {
+      return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    function matchingChallengesForPlace(place) {
+      const needle = normalizeText(place);
+      if (!needle) return [];
+      const words = needle.split(/[\s,/-]+/).filter(Boolean);
+      return allChallenges().filter(ch => {
+        if (ch.generated || ch.countryId === 'custom') return false;
+        const haystack = normalizeText([ch.title, ch.description, ch.location, ch.category, getCountryByChallengeId(ch.id)?.name].join(' '));
+        return words.some(word => word.length > 2 && haystack.includes(word));
+      });
+    }
+    function generatedChallengeTemplates(place) {
+      const cleanPlace = place.trim();
+      if (!cleanPlace) return [];
+      const slug = normalizeText(cleanPlace).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'plek';
+      return [
+        { suffix: 'markt', category: 'sociaal', title: `Local Market Explorer in ${cleanPlace}`, description: `Bezoek een markt of kleine winkel in ${cleanPlace}, koop iets lokaals en leer het verhaal erachter.`, points: 55, reward: '🛒 Klein lokaal souvenir' },
+        { suffix: 'sunset', category: 'romance', title: `Sunset Spot in ${cleanPlace}`, description: `Vind de mooiste plek voor zonsondergang in ${cleanPlace} en maak samen een foto.`, points: 50, reward: '💋 Extra zoen van je vriendje' },
+        { suffix: 'food', category: 'culinair', title: `Signature Bite in ${cleanPlace}`, description: `Proef een gerecht, snack of drankje dat typisch is voor deze plek en geef het een cijfer.`, points: 45, reward: '🍽️ Toetje of drankje van Danny' },
+        { suffix: 'walk', category: 'wildcard', title: `Hidden Gem Walk in ${cleanPlace}`, description: `Maak een wandeling zonder strak plan en ontdek iets dat niet in de planning stond.`, points: 60, reward: '📸 Foto wordt dagfavoriet' }
+      ].map(item => ({
+        id: `loc-${slug}-${item.suffix}`,
+        category: item.category,
+        title: item.title,
+        description: item.description,
+        points: item.points,
+        reward: item.reward,
+        location: cleanPlace,
+        generated: true
+      }));
+    }
 
     function isCountryOpen(country) {
       if (!country || !country.visibleFrom) return true;
@@ -736,14 +874,41 @@
     }
 
     function renderCountries(container) {
-      const { total, completed, points } = counts();
       updateStats();
 
-      let html = `<div class="filter-buttons"></div>`;
+      const matches = state.currentPlace ? matchingChallengesForPlace(state.currentPlace) : [];
+      let html = `
+        <div class="location-panel">
+          <div style="font-weight:600">Waar zijn jullie nu?</div>
+          <input id="currentPlaceInput" value="${escapeHtml(state.currentPlace)}" placeholder="Bijv. Tarifa, Hoi An, Porto, camperplek aan zee" />
+          <div class="location-actions">
+            <button class="small-button primary" onclick="saveCurrentPlace()">Toon passende challenges</button>
+            <button class="small-button" onclick="generateLocalChallenges()">Maak lokale challenges</button>
+            <button class="small-button" onclick="clearCurrentPlace()">Wis plek</button>
+          </div>
+          <div class="muted-note">${state.currentPlace ? `${matches.length} bestaande challenge(s) gevonden voor deze plek. Je kunt daarnaast lokale challenges aanmaken die altijd hier uitvoerbaar zijn.` : 'Vul een plek in om bestaande challenges te vinden of nieuwe lokale challenges te maken.'}</div>
+        </div>
+      `;
 
-      Object.values(data).forEach(country => {
-        const totalC = country.challenges.length;
-        const doneC = country.challenges.filter(ch => state.completed[ch.id]).length;
+      if (state.currentPlace && matches.length) {
+        html += `
+          <div class="country-section">
+            <div class="country-header" onclick="toggleCountry('suggested')">
+              <div class="country-flag">✨</div>
+              <div class="country-info"><h3>Passend bij ${escapeHtml(state.currentPlace)}</h3><span>Bestaande challenges</span></div>
+            </div>
+            <div id="body-suggested">
+              ${matches.slice(0, 8).map(ch => renderChallengeCard(ch, true, 'match')).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      countryList().forEach(country => {
+        const visibleChallenges = country.challenges.filter(ch => !state.hiddenChallenges[ch.id]);
+        if (!visibleChallenges.length) return;
+        const totalC = visibleChallenges.length;
+        const doneC = visibleChallenges.filter(ch => state.completed[ch.id]).length;
         const pct = totalC ? (doneC / totalC) : 0;
         const open = isCountryOpen(country);
 
@@ -762,7 +927,7 @@
 
         // ONLY show challenges when country is open OR if this is camperlife (always visible)
         const challengesHtml = (open || country.id === 'camperlife')
-          ? country.challenges.map(ch => renderChallengeCard(ch, open)).join('')
+          ? visibleChallenges.map(ch => renderChallengeCard(ch, open)).join('')
           : ''; // hidden until open
 
         html += `
@@ -790,11 +955,12 @@
       container.innerHTML = html;
     }
 
-    function renderChallengeCard(ch, countryOpen) {
+    function renderChallengeCard(ch, countryOpen, extraLabel) {
       const done = !!state.completed[ch.id];
       const lockedClass = countryOpen ? '' : 'locked';
       // show reward only when challenge is completed
       const reward = (done && ch.reward) ? `<div class="challenge-reward">🎁 ${ch.reward}</div>` : '';
+      const match = extraLabel ? `<span class="match-chip">Past bij je huidige plek</span>` : '';
       return `
         <div class="challenge-card ${done ? 'completed' : ''} ${lockedClass}" data-challenge="${ch.id}" onclick="${countryOpen ? `openModal('${ch.id}')` : `openModal('${ch.id}')`}">
           <div class="challenge-header">
@@ -803,6 +969,7 @@
           </div>
           <div class="challenge-title">${ch.title}</div>
           <div class="challenge-description">${ch.description || ''}</div>
+          ${match}
           ${reward}
         </div>
       `;
@@ -825,6 +992,86 @@
         const ch = getChallengeById(id);
         c.style.display = (ch && ch.category === filter) ? '' : 'none';
       });
+    }
+
+    function saveCurrentPlace() {
+      const input = document.getElementById('currentPlaceInput');
+      state.currentPlace = (input?.value || '').trim();
+      saveState();
+      showTab('countries');
+      if (state.currentPlace) showNotification(`Plek opgeslagen: ${state.currentPlace}`);
+    }
+    function clearCurrentPlace() {
+      state.currentPlace = '';
+      saveState();
+      showTab('countries');
+    }
+    function generateLocalChallenges() {
+      const input = document.getElementById('currentPlaceInput');
+      const place = (input?.value || state.currentPlace || '').trim();
+      if (!place) {
+        showNotification('Vul eerst in waar je bent.');
+        return;
+      }
+      state.currentPlace = place;
+      const existingIds = new Set((state.customChallenges || []).map(ch => ch.id));
+      const generated = generatedChallengeTemplates(place).filter(ch => !existingIds.has(ch.id));
+      if (!generated.length) {
+        showNotification('Voor deze plek bestaan de lokale challenges al.');
+      } else {
+        state.customChallenges = [...(state.customChallenges || []), ...generated];
+        showNotification(`${generated.length} lokale challenges toegevoegd.`);
+      }
+      saveState();
+      showTab('countries');
+    }
+    function hideChallenge() {
+      if (!currentModalChallengeId) return;
+      state.hiddenChallenges[currentModalChallengeId] = true;
+      delete state.completed[currentModalChallengeId];
+      saveState();
+      closeModal();
+      showNotification('Challenge verborgen.');
+      const active = document.querySelector('.tab.active')?.getAttribute('data-tab') || 'countries';
+      showTab(active);
+    }
+    function restoreHiddenChallenges() {
+      state.hiddenChallenges = {};
+      saveState();
+      showNotification('Verborgen challenges zijn teruggezet.');
+      showTab('rewards');
+    }
+    function exportProgress() {
+      saveState();
+      const payload = JSON.stringify({ exportedAt: new Date().toISOString(), state }, null, 2);
+      const blob = new Blob([payload], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `wereldreis-voortgang-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showNotification('Backup gedownload.');
+    }
+    function importProgress(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          state = normalizeState(parsed.state || parsed);
+          saveState();
+          showNotification('Backup teruggezet.');
+          showTab('rewards');
+        } catch(e) {
+          showNotification('Backup kon niet worden gelezen.');
+        }
+        event.target.value = '';
+      };
+      reader.readAsText(file);
     }
 
     function renderAchievements(container) {
@@ -881,6 +1128,25 @@
         <div class="leaderboard">
           <div style="font-weight:600">Beloningen ontgrendeld: ${state.rewardsUnlocked.length}</div>
         </div>
+        <div class="backup-panel">
+          <div style="font-weight:600; margin-bottom:8px">Voortgang & backup</div>
+          <div class="backup-row">
+            <span>Laatste opslag</span>
+            <strong>${state.lastSavedAt ? new Date(state.lastSavedAt).toLocaleString('nl-NL') : 'Nog niet opgeslagen'}</strong>
+          </div>
+          <div class="backup-row">
+            <span>Verborgen challenges</span>
+            <strong>${Object.keys(state.hiddenChallenges || {}).length}</strong>
+          </div>
+          <div class="location-actions" style="margin-top:10px;">
+            <button class="small-button primary" onclick="exportProgress()">Download backup</button>
+            <button class="small-button" onclick="document.getElementById('restoreFileInput').click()">Importeer backup</button>
+            <button class="small-button" onclick="restoreHiddenChallenges()">Toon verborgen challenges</button>
+            <button class="small-button" onclick="mailUnlockedRewards()">Mail beloningen</button>
+          </div>
+          <input id="restoreFileInput" type="file" accept="application/json" style="display:none" onchange="importProgress(event)" />
+          <div class="muted-note">De app bewaart voortgang dubbel lokaal en in IndexedDB. Een backupbestand blijft de beste extra zekerheid als iOS opslag opruimt.</div>
+        </div>
       `;
       container.innerHTML = html;
     }
@@ -894,9 +1160,10 @@
       document.getElementById('unlockedRewards').textContent = state.rewardsUnlocked.length;
 
       // Update country progress circles if present
-      Object.values(data).forEach(country => {
-        const totalC = country.challenges.length;
-        const doneC = country.challenges.filter(ch => state.completed[ch.id]).length;
+      countryList().forEach(country => {
+        const visibleChallenges = country.challenges.filter(ch => !state.hiddenChallenges[ch.id]);
+        const totalC = visibleChallenges.length;
+        const doneC = visibleChallenges.filter(ch => state.completed[ch.id]).length;
         const p = totalC ? (doneC/totalC) : 0;
         const el = document.getElementById('pc-'+country.id);
         if (el) {
@@ -914,7 +1181,7 @@
       currentModalChallengeId = chId;
       const ch = getChallengeById(chId);
       if (!ch) return;
-      const country = data[ch.countryId];
+      const country = getCountryByChallengeId(chId);
       const open = isCountryOpen(country);
 
       if (!open) {
@@ -926,6 +1193,7 @@
         document.getElementById('modalRewardBox').textContent = `🔒 Opent op ${country.visibleFrom}`;
         document.getElementById('completeBtn').style.display = 'none';
         document.getElementById('undoBtn').style.display = 'none';
+        document.getElementById('hideBtn').style.display = 'inline-block';
         document.getElementById('challengeModal').classList.add('active');
         return;
       }
@@ -940,6 +1208,7 @@
 
       document.getElementById('completeBtn').style.display = done ? 'none' : 'inline-block';
       document.getElementById('undoBtn').style.display = done ? 'inline-block' : 'none';
+      document.getElementById('hideBtn').style.display = 'inline-block';
 
       document.getElementById('challengeModal').classList.add('active');
     }
@@ -952,7 +1221,7 @@
       // verify country is open
       const ch = getChallengeById(currentModalChallengeId);
       if (!ch) return;
-      const country = data[ch.countryId];
+      const country = getCountryByChallengeId(currentModalChallengeId);
       if (!isCountryOpen(country)) {
         showNotification('Dit land is nog niet open.');
         closeModal();
@@ -981,6 +1250,7 @@
         if (completed >= m.threshold && !state.rewardsUnlocked.includes(m.text)) {
           state.rewardsUnlocked.push(m.text);
           showNotification('Beloning ontgrendeld: ' + m.text);
+          emailRewardDraft(m.text, completed, true);
           saveState();
         }
       });
@@ -995,6 +1265,39 @@
         return;
       }
       showNotification(`Geopend: ${m.text}`);
+    }
+    function rewardEmailBody(rewards) {
+      const { completed, points } = counts();
+      return [
+        'Hoi Danny,',
+        '',
+        "Er zijn beloningen vrijgespeeld in Anouk's Wereldreis Challenge:",
+        '',
+        ...rewards.map(text => `- ${text}`),
+        '',
+        `Voortgang: ${completed} challenges voltooid, ${points} punten.`,
+        state.currentPlace ? `Huidige plek: ${state.currentPlace}` : '',
+        '',
+        'Liefs,',
+        'Anouk'
+      ].filter(Boolean).join('\n');
+    }
+    function emailRewardDraft(rewardText, completed, automatic) {
+      if (!rewardText || state.emailedRewards[rewardText]) return;
+      state.emailedRewards[rewardText] = true;
+      const subject = `Beloning vrijgespeeld: ${rewardText.replace(/[^\wÀ-ÿ\s-]/g, '').trim()}`;
+      const body = rewardEmailBody([rewardText]);
+      const url = `mailto:${REWARD_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      if (automatic) setTimeout(() => { window.location.href = url; }, 500);
+    }
+    function mailUnlockedRewards() {
+      if (!state.rewardsUnlocked.length) {
+        showNotification('Er zijn nog geen beloningen vrijgespeeld.');
+        return;
+      }
+      const subject = 'Vrijgespeelde beloningen Wereldreis Challenge';
+      const body = rewardEmailBody(state.rewardsUnlocked);
+      window.location.href = `mailto:${REWARD_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }
 
     /* ------------------------
@@ -1074,11 +1377,33 @@
     /* ------------------------
        Boot
        ------------------------ */
+    function stateWeight(value) {
+      return Object.keys(value.completed || {}).length
+        + (value.rewardsUnlocked || []).length
+        + (value.customChallenges || []).length
+        + Object.keys(value.hiddenChallenges || {}).length;
+    }
+    function hydrateFromIndexedDb() {
+      readStateFromDb().then(saved => {
+        if (!saved) return;
+        const dbState = normalizeState(saved);
+        const dbTime = dbState.lastSavedAt ? new Date(dbState.lastSavedAt).getTime() : 0;
+        const localTime = state.lastSavedAt ? new Date(state.lastSavedAt).getTime() : 0;
+        if (dbTime > localTime || stateWeight(dbState) > stateWeight(state)) {
+          state = dbState;
+          saveState();
+          showNotification('Voortgang hersteld uit veilige opslag.');
+          const active = document.querySelector('.tab.active')?.getAttribute('data-tab') || 'countries';
+          showTab(active);
+        }
+      });
+    }
     function init() {
       spawnHearts();
       renderCountdown();
       maybeShowSpecialBanner();
       showTab('countries');
+      hydrateFromIndexedDb();
       // default filter button active
       const firstFilter = document.querySelector('.filter-btn');
       if (firstFilter) firstFilter.classList.add('active');
@@ -1091,22 +1416,24 @@
     window.completeChallenge = completeChallenge;
     window.undoChallenge = undoChallenge;
     window.openMilestone = openMilestone;
+    window.saveCurrentPlace = saveCurrentPlace;
+    window.clearCurrentPlace = clearCurrentPlace;
+    window.generateLocalChallenges = generateLocalChallenges;
+    window.hideChallenge = hideChallenge;
+    window.restoreHiddenChallenges = restoreHiddenChallenges;
+    window.exportProgress = exportProgress;
+    window.importProgress = importProgress;
+    window.mailUnlockedRewards = mailUnlockedRewards;
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') saveState();
+    });
+    window.addEventListener('beforeunload', saveState);
 
     document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
 
 
 
